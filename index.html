@@ -46,7 +46,7 @@ padding:18px; margin:10px 0; display:none; }
 .badge { display:inline-block; padding:4px 12px; border-radius:50px;
 font-size:11px; font-weight:700; margin-bottom:8px; text-transform:uppercase; }
 .healthy { background:rgba(52,211,153,0.2); color:#34d399; }
-n HealthGuard AI v2 — Complete Build Guide | Relay.app + Claude Sonnet + Gmail + GitHub Pages Page 7
+
 .moderate { background:rgba(251,191,36,0.2); color:#fbbf24; }
 .unhealthy { background:rgba(248,113,113,0.2); color:#f87171; }
 .product-name { font-size:15px; font-weight:700; margin-bottom:6px; color:#fff; }
@@ -122,7 +122,7 @@ if (p.name) {
 const goal = p.tdee || 2000;
 bar.innerHTML = `n <span>${p.name}</span> · Goal: <span>${goal} kcal/day</span>`;
 } else {
-  n HealthGuard AI v2 — Complete Build Guide | Relay.app + Claude Sonnet + Gmail + GitHub Pages Page 9
+
 bar.innerHTML = `nn <a href="profile.html" style="color:#fbbf24">
 Set up your profile</a> for personalised calorie limits`;
 }
@@ -160,7 +160,7 @@ scanning = false;
 }
 function onDecode(res) {
 if (!res || !scanning) return;
-  n HealthGuard AI v2 — Complete Build Guide | Relay.app + Claude Sonnet + Gmail + GitHub Pages Page 10
+ 
 scanning = false; reader.reset();
 const barcode = res.getText();
 setStatus("<span class=\"spin\"></span>",
