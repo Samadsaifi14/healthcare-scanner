@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthGuard — History</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,sans-serif; background:#0a0e1a;
+color:#e2e8f0; padding:20px; }
+.app { max-width:420px; margin:0 auto; }
+h1 { font-size:1.3rem; font-weight:800; text-align:center; margin:16px 0 4px;
+background:linear-gradient(135deg,#00e5c0,#a78bfa);
+-webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.toolbar { display:flex; gap:8px; margin:12px 0; }
+#search { flex:1; padding:10px 12px; background:#111827;
+border:1px solid #1e2d45; border-radius:8px; color:#e2e8f0;
+font-size:13px; }
+.del-all { padding:10px 14px; border-radius:8px; border:1px solid #f87171;
+background:transparent; color:#f87171; font-size:12px;
+font-weight:700; cursor:pointer; }
+.item { background:#111827; border:1px solid #1e2d45; border-radius:10px;
+padding:12px 14px; margin-bottom:8px;
+display:flex; align-items:center; gap:10px; }
+.item-info { flex:1; }
+.item-name { font-size:13px; font-weight:700; color:#fff; }
+.item-meta { font-size:11px; color:#64748b; margin-top:3px; }
+.item-badge { padding:3px 8px; border-radius:20px; font-size:10px;
+font-weight:700; text-transform:uppercase; white-space:nowrap; }
+.healthy { background:rgba(52,211,153,0.2); color:#34d399; }
+.moderate { background:rgba(251,191,36,0.2); color:#fbbf24; }
+.unhealthy { background:rgba(248,113,113,0.2); color:#f87171; }
+.del-btn { background:transparent; border:none; color:#475569;
+font-size:16px; cursor:pointer; padding:4px; }
+.del-btn:hover { color:#f87171; }
+.empty { text-align:center; color:#475569; margin:40px 0; font-size:13px; }
+.stats { display:flex; gap:8px; margin:12px 0; }
+.stat { flex:1; background:#111827; border:1px solid #1e2d45;
+border-radius:8px; padding:10px; text-align:center; }
+.stat-num { font-size:1.4rem; font-weight:800; color:#00e5c0; }
+.stat-lbl { font-size:10px; color:#64748b; }
+</style>
+</head>
+<body>
+<div class="app">
+<h1>n Scan History</h1>
+<div class="stats">
+<div class="stat"><div class="stat-num" id="total">0</div>
+<div class="stat-lbl">Total Scans</div></div>
+<div class="stat"><div class="stat-num" id="healthy-c" style="color:#34d399">0</div>
+<div class="stat-lbl">Healthy</div></div>
+<div class="stat"><div class="stat-num" id="unhealthy-c" style="color:#f87171">0</div>
+<div class="stat-lbl">Unhealthy</div></div>
+</div>
+<div class="toolbar">
+<input type="text" id="search" placeholder="n Search products..." oninput="render()">
+<button class="del-all" onclick="deleteAll()">nn Clear All</button>
+</div>
+<div id="list"></div>
+<a href="index.html" style="display:block;text-align:center;color:#64748b;
+font-size:12px;margin-top:14px;">← Back to Scanner</a>
+</div>
+<script>
+let history = JSON.parse(localStorage.getItem("hg_history") || "[]");
+function render() {
+const q = document.getElementById("search").value.toLowerCase();
+const filtered = history.filter(h =>
+(h.name||"").toLowerCase().includes(q) || (h.barcode||"").includes(q));
+document.getElementById("total").textContent = history.length;
+document.getElementById("healthy-c").textContent =
+history.filter(h => h.rating === "Healthy").length;
+document.getElementById("unhealthy-c").textContent =
+history.filter(h => h.rating === "Unhealthy").length;
+const list = document.getElementById("list");
+if (!filtered.length) {
+list.innerHTML = "<div class='empty'>No scans yet. Go scan something!</div>";
+return;
+}
+list.innerHTML = filtered.map((h, i) => {
+const rm = {"Healthy":"healthy","Moderately Healthy":"moderate","Unhealthy":"unhealthy"};
+const date = new Date(h.ts).toLocaleString("en-IN",
+{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+return `<div class="item">
+<div class="item-info">
+<div class="item-name">${h.name || h.barcode}</div>
+<div class="item-meta">${date} · ${h.kcal ? h.kcal+" kcal" : ""} · ${h.source||""}</div>
+</div>
+<span class="item-badge ${rm[h.rating]||"moderate"}">${h.rating||"?"}</span>
+<button class="del-btn" onclick="deleteScan(${i})" title="Delete">nn</button>
+</div>`;
+}).join("");
+}
+function deleteScan(idx) {
+history.splice(idx, 1);
+localStorage.setItem("hg_history", JSON.stringify(history));
+render();
+}
+function deleteAll() {
+if (!confirm("Delete all scan history?")) return;
+history = [];
+localStorage.setItem("hg_history", JSON.stringify(history));
+render();
+}
+render();
+</script>
+</body>
+</html>
