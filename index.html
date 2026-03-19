@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthGuard AI</title>
+
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<style>
+body {
+  font-family: Arial;
+  background:#F5F3FF;
+  text-align:center;
+  padding:20px;
+}
+
+h1 { color:#4A1D96; }
+
+video {
+  width:100%;
+  max-width:400px;
+  border-radius:12px;
+  border:3px solid #7C3AED;
+  transform: scaleX(1); /* FIX mirror */
+}
+
+input, select {
+  padding:10px;
+  margin:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  width:90%;
+}
+
+button {
+  background:#7C3AED;
+  color:white;
+  border:none;
+  padding:12px;
+  border-radius:8px;
+  margin:10px;
+  cursor:pointer;
+}
+
+#result {
+  background:#D1FAE5;
+  padding:15px;
+  border-radius:10px;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏥 HealthGuard AI</h1>
+
+<!-- USER SETUP -->
+<div id="userForm">
+  <input id="name" placeholder="Your Name"><br>
+  <input id="age" type="number" placeholder="Age"><br>
+  <input id="height" type="number" placeholder="Height (cm)"><br>
+  <input id="weight" type="number" placeholder="Weight (kg)"><br>
+
+  <select id="gender">
+    <option>Male</option>
+    <option>Female</option>
+  </select><br>
+
+  <input id="condition" placeholder="Medical condition (optional)"><br>
+
+  <button onclick="saveUser()">Save Profile</button>
+</div>
+
+<!-- SCANNER -->
+<div id="scanner" style="display:none;">
+  <video id="preview"></video>
+  <p id="status">📷 Starting camera...</p>
+  <div id="result"></div>
+
+  <button onclick="startScan()">Scan Again</button>
+  <button onclick="deleteUser()">Delete Account</button>
+</div>
+
+<script>
+
+const RELAY_WEBHOOK = "YOUR_RELAY_WEBHOOK_URL_HERE";
+
+const codeReader = new ZXing.BrowserMultiFormatReader();
+let selectedDeviceId = null;
+let scanning = false;
+
+/* ---------- USER SYSTEM ---------- */
+
+function saveUser() {
+  const user = {
+    name: name.value,
+    age: age.value,
+    height: height.value,
+    weight: weight.value,
+    gender: gender.value,
+    condition: condition.value
+  };
+
+  localStorage.setItem("user", JSON.stringify(user));
+
+  document.getElementById("userForm").style.display = "none";
+  document.getElementById("scanner").style.display = "block";
+
+  calculateCalories(user);
+  initCamera();
+}
+
+function loadUser() {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user) {
+    document.getElementById("userForm").style.display = "none";
+    document.getElementById("scanner").style.display = "block";
+    calculateCalories(user);
+    initCamera();
+  }
+}
+
+function deleteUser() {
+  localStorage.removeItem("user");
+  location.reload();
+}
+
+/* ---------- CALORIE CALC ---------- */
+
+function calculateCalories(user) {
+  let bmr;
+
+  if (user.gender === "Male") {
+    bmr = 10*user.weight + 6.25*user.height - 5*user.age + 5;
+  } else {
+    bmr = 10*user.weight + 6.25*user.height - 5*user.age - 161;
+  }
+
+  const calories = Math.round(bmr * 1.2);
+
+  document.getElementById("status").innerText =
+    `👋 ${user.name}, Daily Calorie Limit: ${calories} kcal`;
+}
+
+/* ---------- CAMERA ---------- */
+
+async function initCamera() {
+  try {
+    const devices = await codeReader.listVideoInputDevices();
+
+    // Prefer back camera
+    const backCam = devices.find(d =>
+      d.label.toLowerCase().includes("back")
+    );
+
+    selectedDeviceId = backCam
+      ? backCam.deviceId
+      : devices[0].deviceId;
+
+    startScan();
+
+  } catch (err) {
+    document.getElementById("status").innerText =
+      "❌ Camera access denied!";
+  }
+}
+
+/* ---------- SCAN ---------- */
+
+async function startScan() {
+  if (scanning) return;
+
+  scanning = true;
+
+  document.getElementById("status").innerText =
+    "📷 Scanning...";
+
+  document.getElementById("result").style.display = "none";
+
+  codeReader.decodeFromVideoDevice(
+    selectedDeviceId,
+    "preview",
+    async (result, err) => {
+
+      if (result) {
+        scanning = false;
+        codeReader.reset();
+
+        const barcode = result.getText();
+
+        document.getElementById("status").innerText =
+          "✅ Barcode: " + barcode;
+
+        sendToAI(barcode);
+      }
+    }
+  );
+}
+
+/* ---------- API ---------- */
+
+async function sendToAI(barcode) {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  try {
+    const resp = await fetch(RELAY_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        barcode,
+        user
+      })
+    });
+
+    const data = await resp.json();
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").innerHTML =
+      `<b>Rating:</b> ${data.rating || "N/A"}<br>
+       ${data.summary || "Analysis done"}`;
+
+  } catch {
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").innerText =
+      "⚠️ Could not reach AI server";
+  }
+}
+
+/* ---------- INIT ---------- */
+loadUser();
+
+</script>
+
+</body>
+</html>
