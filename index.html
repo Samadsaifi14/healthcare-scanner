@@ -5,230 +5,543 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0e1a">
 <title>HealthGuard AI</title>
-<!-- ZXing barcode library -->
 <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-background: #0a0e1a; color: #e2e8f0; min-height:100vh;
-display:flex; flex-direction:column; align-items:center; padding:20px; }
-.app { width:100%; max-width:420px; }
-h1 { font-size:1.5rem; font-weight:800; text-align:center; margin:16px 0 4px;
-background:linear-gradient(135deg,#00e5c0,#a78bfa);
--webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.sub { text-align:center; color:#64748b; font-size:12px; margin-bottom:8px; }
-.nav { display:flex; gap:8px; margin-bottom:14px; }
-.nav-btn { flex:1; padding:10px; border-radius:8px; border:1px solid #1e2d45;
-background:transparent; color:#64748b; font-size:12px;
-font-weight:600; cursor:pointer; text-align:center; }
-.nav-btn:hover { border-color:#00e5c0; color:#00e5c0; }
-/* nn FIX: rear camera video must NOT be mirrored nn */
-#video-wrap { position:relative; width:100%; border-radius:16px; overflow:hidden;
-background:#111; aspect-ratio:1; border:2px solid rgba(0,229,192,0.35); }
-#preview { width:100%; height:100%; object-fit:cover; display:block;
-transform:none; } /* transform:none prevents front-cam mirror flip */
-.scan-line { position:absolute; width:70%; height:2px; left:15%;
-background:rgba(0,229,192,0.8); animation:scan 2s ease-in-out infinite; }
-@keyframes scan { 0%,100%{top:20%} 50%{top:78%} }
-.cam-badge { position:absolute; bottom:8px; right:10px; font-size:10px;
-color:rgba(0,229,192,0.8); background:rgba(0,0,0,0.5);
-padding:2px 8px; border-radius:20px; }
-#profile-bar { background:#111827; border:1px solid #1e2d45; border-radius:10px;
-padding:10px 14px; margin:10px 0; font-size:12px; color:#94a3b8; }
-#profile-bar span { color:#00e5c0; font-weight:700; }
-#status { background:#111827; border:1px solid #1e2d45; border-radius:12px;
-padding:16px; margin:10px 0; min-height:70px;
-display:flex; align-items:center; gap:12px; }
-#si { font-size:1.5rem; flex-shrink:0; }
-#st { font-size:13px; color:#94a3b8; line-height:1.5; }
-#result { background:#111827; border:1px solid #1e2d45; border-radius:12px;
-padding:18px; margin:10px 0; display:none; }
-.badge { display:inline-block; padding:4px 12px; border-radius:50px;
-font-size:11px; font-weight:700; margin-bottom:8px; text-transform:uppercase; }
-.healthy { background:rgba(52,211,153,0.2); color:#34d399; }
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-.moderate { background:rgba(251,191,36,0.2); color:#fbbf24; }
-.unhealthy { background:rgba(248,113,113,0.2); color:#f87171; }
-.product-name { font-size:15px; font-weight:700; margin-bottom:6px; color:#fff; }
-.summary { font-size:13px; color:#94a3b8; line-height:1.6; margin-bottom:8px; }
-.alerts { font-size:12px; color:#f87171; background:rgba(248,113,113,0.08);
-border-left:2px solid #f87171; padding:8px 10px;
-border-radius:0 6px 6px 0; margin-bottom:8px; }
-.tip { font-size:12px; color:#60a5fa; background:rgba(96,165,250,0.08);
-border-left:2px solid #60a5fa; padding:8px 10px;
-border-radius:0 6px 6px 0; }
-.src-tag { font-size:10px; color:#475569; margin-top:8px; }
-#cal-wrap { margin-top:12px; }
-#cal-bar { background:rgba(255,255,255,0.05); border-radius:8px;
-height:8px; overflow:hidden; margin:4px 0; }
-#cal-fill { height:100%; border-radius:8px; transition:width 0.6s ease; }
-#cal-txt { font-size:11px; color:#64748b; }
-.btns { display:flex; gap:8px; margin-top:12px; }
-.btn { flex:1; padding:13px; border-radius:10px; border:none;
-font-size:13px; font-weight:700; cursor:pointer; }
-.primary { background:linear-gradient(135deg,#00e5c0,#059669); color:#fff; }
-.secondary { background:transparent; border:1px solid #1e2d45; color:#64748b; }
-.spin { display:inline-block; width:13px; height:13px;
-border:2px solid rgba(0,229,192,0.3); border-top-color:#00e5c0;
-border-radius:50%; animation:sp 0.8s linear infinite;
-vertical-align:middle; }
-@keyframes sp { to { transform:rotate(360deg); } }
+  :root {
+    --bg:        #060a10;
+    --surface:   #0d1117;
+    --surface2:  #111827;
+    --border:    #1e2d45;
+    --border2:   #30363d;
+    --teal:      #00e5c0;
+    --teal-dim:  rgba(0,229,192,0.10);
+    --purple:    #a78bfa;
+    --amber:     #fbbf24;
+    --green:     #34d399;
+    --red:       #f87171;
+    --blue:      #60a5fa;
+    --text:      #e2e8f0;
+    --text2:     #94a3b8;
+    --text3:     #475569;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 16px 32px;
+  }
+
+  .app { width: 100%; max-width: 420px; }
+
+  .header { text-align: center; padding: 14px 0 10px; }
+  .header h1 {
+    font-size: 1.55rem; font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #00e5c0 0%, #a78bfa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .header p { font-size: 11.5px; color: var(--text3); margin-top: 3px; }
+
+  .nav { display: flex; gap: 8px; margin: 10px 0 12px; }
+  .nav-btn {
+    flex: 1; padding: 9px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text3); font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  .nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  #profile-bar {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 14px; margin-bottom: 10px;
+    font-size: 11.5px; color: var(--text2);
+  }
+  #profile-bar strong { color: var(--teal); }
+  #profile-bar a { color: var(--amber); text-decoration: none; font-weight: 600; }
+
+  /* ═══════════════════════════════════════════════════════
+     CAMERA FIX — CSS layer (Part 1 of 2)
+
+     ZXing's library injects  video.style.transform = 'scaleX(-1)'
+     at runtime when it detects the stream comes from a front-facing
+     camera (or when it can't confirm rear-facing).
+
+     We use  !important  here so the inline style ZXing writes
+     cannot override this rule.  The MutationObserver in JS
+     (Part 2) catches any attempt to re-inject it mid-session.
+  ═══════════════════════════════════════════════════════ */
+  #video-wrap {
+    position: relative; width: 100%; border-radius: 14px; overflow: hidden;
+    background: #0a0e0d; aspect-ratio: 1 / 1;
+    border: 1.5px solid rgba(0,229,192,0.3);
+    box-shadow: 0 0 30px rgba(0,229,192,0.06);
+  }
+  #preview {
+    width: 100% !important; height: 100% !important;
+    object-fit: cover !important; display: block !important;
+    transform: none !important;          /* ← PRIMARY camera mirror fix */
+    -webkit-transform: none !important;  /* ← Safari/iOS              */
+  }
+
+  .scan-line {
+    position: absolute; width: 72%; height: 2px; left: 14%;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+    box-shadow: 0 0 8px var(--teal);
+    animation: scan 2.2s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes scan { 0%,100%{ top: 18%; } 50%{ top: 76%; } }
+
+  .corner {
+    position: absolute; width: 22px; height: 22px;
+    border-color: var(--teal); border-style: solid; opacity: 0.7; pointer-events: none;
+  }
+  .corner.tl { top:12px;    left:12px;  border-width:2px 0 0 2px; border-radius:4px 0 0 0; }
+  .corner.tr { top:12px;    right:12px; border-width:2px 2px 0 0; border-radius:0 4px 0 0; }
+  .corner.bl { bottom:12px; left:12px;  border-width:0 0 2px 2px; border-radius:0 0 0 4px; }
+  .corner.br { bottom:12px; right:12px; border-width:0 2px 2px 0; border-radius:0 0 4px 0; }
+
+  .cam-badge {
+    position: absolute; bottom: 8px; right: 10px; font-size: 10px;
+    color: rgba(0,229,192,0.75); background: rgba(0,0,0,0.55);
+    padding: 2px 8px; border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace; pointer-events: none;
+  }
+
+  #status {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin: 10px 0;
+    min-height: 64px; display: flex; align-items: center; gap: 12px;
+  }
+  #si { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
+  #st { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+
+  /* Debug overlay — shown on errors to give actionable info */
+  #debug {
+    display: none;
+    background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.28);
+    border-radius: 10px; padding: 10px 14px; margin: 6px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    color: var(--red); line-height: 1.7; word-break: break-all;
+  }
+  #debug .dbg-title { display: block; font-weight: 700; font-size: 11px; margin-bottom: 5px; }
+
+  #result {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin: 8px 0; display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0);   }
+  }
+
+  .badge {
+    display: inline-block; padding: 4px 12px; border-radius: 50px;
+    font-size: 11px; font-weight: 700; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .healthy   { background:rgba(52,211,153,0.15);  color:var(--green);  border:1px solid rgba(52,211,153,0.3);  }
+  .moderate  { background:rgba(251,191,36,0.15);  color:var(--amber);  border:1px solid rgba(251,191,36,0.3);  }
+  .unhealthy { background:rgba(248,113,113,0.15); color:var(--red);    border:1px solid rgba(248,113,113,0.3); }
+  .unknown   { background:rgba(148,163,184,0.1);  color:var(--text2);  border:1px solid var(--border2);        }
+
+  .product-name { font-size:15px; font-weight:700; margin-bottom:6px; color:#fff; line-height:1.3; }
+  .summary      { font-size:12.5px; color:var(--text2); line-height:1.65; margin-bottom:8px; }
+  .alerts {
+    font-size:12px; color:var(--red); background:rgba(248,113,113,0.07);
+    border-left:2px solid var(--red); padding:8px 10px;
+    border-radius:0 6px 6px 0; margin-bottom:8px; line-height:1.5;
+  }
+  .tip-box {
+    font-size:12px; color:var(--blue); background:rgba(96,165,250,0.07);
+    border-left:2px solid var(--blue); padding:8px 10px;
+    border-radius:0 6px 6px 0; line-height:1.5;
+  }
+  .src-tag { font-size:10px; color:var(--text3); margin-top:8px; font-family:'JetBrains Mono',monospace; }
+
+  #cal-wrap { margin-top:12px; }
+  #cal-bar  { background:rgba(255,255,255,0.05); border-radius:8px; height:7px; overflow:hidden; margin:5px 0 4px; }
+  #cal-fill { height:100%; border-radius:8px; transition:width 0.7s cubic-bezier(.4,0,.2,1); }
+  #cal-txt  { font-size:11px; color:var(--text3); font-family:'JetBrains Mono',monospace; }
+
+  .btns { display:flex; gap:8px; margin-top:12px; }
+  .btn  {
+    flex:1; padding:13px; border-radius:10px; border:none;
+    font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+    cursor:pointer; transition:opacity 0.18s, transform 0.1s;
+  }
+  .btn:active { transform:scale(0.97); }
+  .primary   { background:linear-gradient(135deg,#00e5c0,#059669); color:#fff; }
+  .secondary { background:transparent; border:1px solid var(--border); color:var(--text3); }
+
+  .spin {
+    display:inline-block; width:13px; height:13px;
+    border:2px solid rgba(0,229,192,0.25); border-top-color:var(--teal);
+    border-radius:50%; animation:sp 0.75s linear infinite; vertical-align:middle; margin-right:4px;
+  }
+  @keyframes sp { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 <div class="app">
-<h1>n HealthGuard AI</h1>
-<p class="sub">Point rear camera at any food barcode</p>
-<div class="nav">
-<div class="nav-btn" onclick="location.href='profile.html'">n Profile</div>
-<div class="nav-btn" onclick="location.href='history.html'">n History</div>
-</div>
-<!-- Profile bar — shows name + daily calorie target -->
-<div id="profile-bar">n Loading profile...</div>
 
-<div id="video-wrap">
-<video id="preview" playsinline muted autoplay></video>
-<div class="scan-line"></div>
-<div class="cam-badge" id="cam-badge">n rear</div>
+  <div class="header">
+    <h1>🏥 HealthGuard AI</h1>
+    <p>Point rear camera at any food barcode</p>
+  </div>
+
+  <div class="nav">
+    <div class="nav-btn" onclick="location.href='profile.html'">👤 Profile</div>
+    <div class="nav-btn" onclick="location.href='history.html'">📋 History</div>
+  </div>
+
+  <div id="profile-bar">👤 Loading profile...</div>
+
+  <div id="video-wrap">
+    <video id="preview" playsinline muted autoplay></video>
+    <div class="scan-line"></div>
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div class="cam-badge" id="cam-badge">📷 rear</div>
+  </div>
+
+  <div id="status">
+    <div id="si">📷</div>
+    <div id="st">Starting camera...</div>
+  </div>
+
+  <div id="debug"></div>
+
+  <div id="result">
+    <span id="badge" class="badge"></span>
+    <div id="pname" class="product-name"></div>
+    <div id="sum"   class="summary"></div>
+    <div id="med-alerts" class="alerts"  style="display:none"></div>
+    <div id="tip-box"    class="tip-box" style="display:none"></div>
+    <div id="src"        class="src-tag"></div>
+    <div id="cal-wrap">
+      <div id="cal-bar"><div id="cal-fill"></div></div>
+      <div id="cal-txt"></div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="btn primary"   onclick="restartScan()">🔄 Scan Again</button>
+    <button class="btn secondary" onclick="clearResult()">✕ Clear</button>
+  </div>
+
 </div>
-<div id="status"><div id="si">n</div><div id="st">Starting camera...</div></div>
-<div id="result">
-<span id="badge" class="badge"></span>
-<div id="pname" class="product-name"></div>
-<div id="sum" class="summary"></div>
-<div id="med-alerts" class="alerts" style="display:none"></div>
-<div id="tip" class="tip" style="display:none"></div>
-<div id="src" class="src-tag"></div>
-<div id="cal-wrap">
-<div id="cal-bar"><div id="cal-fill"></div></div>
-<div id="cal-txt"></div>
-</div>
-</div>
-<div class="btns">
-<button class="btn primary" onclick="startScan()">n Scan Again</button>
-<button class="btn secondary" onclick="clearResult()">5 Clear</button>
-</div>
-</div>
+
 <script>
-// nn REPLACE with your Relay.app webhook URL (Phase 2, Step 5)
-const WEBHOOK = "https://hook.relay.app/api/v1/playbook/cmmmdsod4041d0qm45pxu5lgu/trigger/_acgjWjbAbb1MOzxZOWRCw";
+'use strict';
+
+// ─── CONFIG ────────────────────────────────────────────────────
+// ⚠️  Paste your Relay.app Webhook URL here.
+//     Get it from: Relay.app → your Playbook → Trigger step → copy URL
+const WEBHOOK = 'https://hook.relay.app/api/v1/playbook/cmmmdsod4041d0qm45pxu5lgu/trigger/_acgjWjbAbb1MOzxZOWRCw';
+
+// ─── CAMERA FIX — JS layer (Part 2 of 2) ──────────────────────
+// ZXing calls  videoEl.style.transform = 'scaleX(-1)'  at runtime.
+// This MutationObserver watches the #preview element's style attribute
+// and instantly resets any injected transform back to 'none'.
+const videoEl = document.getElementById('preview');
+
+const transformGuard = new MutationObserver(mutations => {
+  for (const m of mutations) {
+    if (m.type === 'attributes' && m.attributeName === 'style') {
+      const t = videoEl.style.transform;
+      if (t && t !== 'none' && t !== '') {
+        // ZXing just tried to mirror — kill it
+        videoEl.style.setProperty('transform',         'none', 'important');
+        videoEl.style.setProperty('-webkit-transform', 'none', 'important');
+      }
+    }
+  }
+});
+transformGuard.observe(videoEl, { attributes: true, attributeFilter: ['style'] });
+
+// ─── STATE ─────────────────────────────────────────────────────
 const reader = new ZXing.BrowserMultiFormatReader();
 let scanning = false;
-// nn Load profile from localStorage nnnnnnnnnnnnnnnnnnnnnn
-function loadProfile() {
-const p = JSON.parse(localStorage.getItem("hg_profile") || "{}");
-const bar = document.getElementById("profile-bar");
-if (p.name) {
-const goal = p.tdee || 2000;
-bar.innerHTML = `n <span>${p.name}</span> · Goal: <span>${goal} kcal/day</span>`;
-} else {
 
-bar.innerHTML = `nn <a href="profile.html" style="color:#fbbf24">
-Set up your profile</a> for personalised calorie limits`;
+// ─── PROFILE ───────────────────────────────────────────────────
+function loadProfile() {
+  const p   = JSON.parse(localStorage.getItem('hg_profile') || '{}');
+  const bar = document.getElementById('profile-bar');
+  if (p && p.name) {
+    bar.innerHTML = `👤 <strong>${p.name}</strong> &nbsp;·&nbsp; Goal: <strong>${p.tdee || 2000} kcal/day</strong>`;
+  } else {
+    bar.innerHTML = `⚠️ <a href="profile.html">Set up your profile</a> for a personalised calorie goal`;
+  }
+  return p;
 }
-return p;
-}
-// nn Camera start (FIXED: always uses rear camera) nnnnnnnn
+
+// ─── CAMERA START ──────────────────────────────────────────────
 async function startScan() {
-if (scanning) return;
-scanning = true;
-document.getElementById("result").style.display = "none";
-setStatus("n", "Starting rear camera...");
-try {
-// PRIMARY: facingMode constraint — directly requests back camera.
-// This prevents the front camera mirror/inversion bug.
-await reader.decodeFromConstraints(
-{ audio: false, video: { facingMode: { ideal: "environment" },
-width: { ideal: 1280 }, height: { ideal: 720 } } },
-"preview", onDecode
-);
-document.getElementById("cam-badge").textContent = "n rear";
-setStatus("n", "Scanning — aim at a barcode.");
-} catch(e1) {
-// FALLBACK: enumerate devices, pick one labelled "back/rear"
-try {
-const devices = await reader.listVideoInputDevices();
-let chosen = devices.find(d => /back|rear|environment/i.test(d.label))
-|| devices[devices.length - 1];
-await reader.decodeFromVideoDevice(chosen.deviceId, "preview", onDecode);
-setStatus("n", "Scanning — aim at a barcode.");
-} catch(e2) {
-setStatus("n", "Camera error: " + e2.message);
-scanning = false;
+  if (scanning) return;
+  scanning = true;
+  document.getElementById('result').style.display = 'none';
+  hideDebug();
+  setStatus('📷', 'Starting rear camera…');
+
+  try { reader.reset(); } catch(_) {}
+
+  // Path 1 — facingMode:'environment' directly requests the rear camera.
+  // This is the correct fix for the inverted/mirrored camera bug.
+  try {
+    await reader.decodeFromConstraints(
+      {
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width:  { ideal: 1280 },
+          height: { ideal: 720  }
+        }
+      },
+      'preview',
+      onDecode
+    );
+    forceNoTransform();
+    document.getElementById('cam-badge').textContent = '📷 rear';
+    setStatus('📷', 'Scanning — aim at a barcode.');
+    return;
+  } catch (e1) {
+    console.warn('[Camera] facingMode failed:', e1.message);
+  }
+
+  // Path 2 — enumerate devices, prefer one labelled "back / rear"
+  try {
+    const devices = await reader.listVideoInputDevices();
+    if (!devices || !devices.length) throw new Error('No camera found. Grant camera permission and reload.');
+
+    let chosen = devices.find(d => /back|rear|environment/i.test(d.label || ''))
+              || devices[devices.length - 1];
+
+    document.getElementById('cam-badge').textContent =
+      /back|rear|environment/i.test(chosen.label || '') ? '📷 rear' : '📷 fallback';
+
+    await reader.decodeFromVideoDevice(chosen.deviceId, 'preview', onDecode);
+    forceNoTransform();
+    setStatus('📷', 'Scanning — aim at a barcode.');
+  } catch (e2) {
+    scanning = false;
+    setStatus('❌', 'Camera error: ' + e2.message);
+    showDebug('Camera Error', [
+      e2.message,
+      '',
+      'Fixes to try:',
+      '• Open the HTTPS github.io URL (not a local file)',
+      '• Tap the lock 🔒 icon → Allow camera access',
+      '• iPhone: use Safari (not Chrome)',
+      '• Reload the page and tap Allow when prompted',
+    ]);
+  }
 }
+
+function forceNoTransform() {
+  videoEl.style.setProperty('transform',         'none', 'important');
+  videoEl.style.setProperty('-webkit-transform', 'none', 'important');
 }
+
+// ─── DECODE CALLBACK ───────────────────────────────────────────
+function onDecode(result) {
+  if (!result || !scanning) return;
+  scanning = false;
+  const barcode = result.getText();
+  reader.reset();
+  forceNoTransform(); // re-apply after ZXing's reset
+
+  setStatus(
+    '<span class="spin"></span>',
+    `Found: <strong style="color:var(--teal)">${barcode}</strong><br>Sending to Relay.app…`
+  );
+  analyse(barcode);
 }
-function onDecode(res) {
-if (!res || !scanning) return;
- 
-scanning = false; reader.reset();
-const barcode = res.getText();
-setStatus("<span class=\"spin\"></span>",
-`Found: <strong style="color:#00e5c0">${barcode}</strong><br>Analysing...`);
-analyse(barcode);
-}
+
+// ─── RELAY.APP API CALL ────────────────────────────────────────
+// Fixes vs the previous version:
+//   1. credentials:'omit'  — prevents CORS preflight from firing
+//   2. Graceful non-JSON handling — shows what Relay actually returned
+//   3. Empty body handling — explains the missing "Respond to Webhook" step
+//   4. Per-error-type debug messages so you can fix each case quickly
 async function analyse(barcode) {
-const profile = JSON.parse(localStorage.getItem("hg_profile") || "{}");
-try {
-const res = await fetch(WEBHOOK, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ barcode, profile, ts: new Date().toISOString() })
-});
-if (!res.ok) throw new Error("Server " + res.status);
-const data = await res.json();
-saveHistory(barcode, data);
-showResult(data);
-} catch(e) {
-setStatus("n", "Could not reach server: " + e.message);
+  hideDebug();
+
+  if (!WEBHOOK || WEBHOOK.includes('YOUR_RELAY') || WEBHOOK.trim() === '') {
+    setStatus('❌', 'Webhook URL not set.');
+    showDebug('Config Error', [
+      'WEBHOOK constant is still the placeholder.',
+      'Open index.html, find const WEBHOOK near the top of the script,',
+      'and replace it with your actual Relay.app trigger URL.',
+    ]);
+    return;
+  }
+
+  const profile = JSON.parse(localStorage.getItem('hg_profile') || '{}');
+
+  let res;
+  try {
+    res = await fetch(WEBHOOK, {
+      method:      'POST',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'omit',          // ← no cookies = no CORS preflight issue
+      body: JSON.stringify({ barcode, profile, ts: new Date().toISOString() })
+    });
+  } catch (netErr) {
+    setStatus('❌', 'Network error — could not reach Relay.app.');
+    showDebug('Network / CORS Error', [
+      netErr.message,
+      '',
+      'Likely causes:',
+      '• Relay playbook is switched OFF  →  relay.app → flip ON',
+      '• Wrong webhook URL  →  re-copy from Relay trigger step',
+      '• CORS blocked  →  in Relay, ensure "Allow all origins" is on',
+      '• No internet connection on this device',
+    ]);
+    return;
+  }
+
+  if (!res.ok) {
+    let body = '';
+    try { body = await res.text(); } catch(_) {}
+    setStatus('❌', `Relay returned HTTP ${res.status}`);
+    showDebug(`HTTP ${res.status} from Relay`, [
+      res.status + ' ' + res.statusText,
+      body ? 'Body: ' + body.substring(0, 300) : '(empty body)',
+      '',
+      res.status === 404 ? '→ Webhook URL wrong or Playbook deleted.'
+      : res.status === 401 || res.status === 403 ? '→ URL expired — regenerate in Relay.'
+      : '→ Check your Relay Playbook for errors.',
+    ]);
+    return;
+  }
+
+  const rawText = await res.text();
+
+  // Relay returned 200 but empty body = no "Respond to Webhook" step
+  if (!rawText || rawText.trim() === '') {
+    setStatus('⚠️', 'Relay received the scan but sent no result back.');
+    showDebug('Empty Response from Relay', [
+      'Relay returned HTTP 200 with an empty body.',
+      '',
+      'Your Playbook is missing a "Respond to Webhook" step,',
+      'OR that step is inside a Paths branch that was not reached.',
+      '',
+      'Fix: In Relay.app, add a "Respond to Webhook" step as the last',
+      'step and set its Body to the JSON from your Claude AI step.',
+    ]);
+    return;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch (parseErr) {
+    setStatus('⚠️', 'Response received but it is not valid JSON.');
+    showDebug('JSON Parse Error', [
+      parseErr.message,
+      '',
+      'First 400 chars returned by Relay:',
+      rawText.substring(0, 400),
+      '',
+      'Fix: your "Respond to Webhook" body must be pure JSON.',
+      'If Claude returns markdown (```json...```) use a JS step',
+      'to strip the backticks before the Respond step.',
+    ]);
+    return;
+  }
+
+  saveHistory(barcode, data);
+  showResult(data);
 }
-}
+
+// ─── HISTORY ───────────────────────────────────────────────────
 function saveHistory(barcode, data) {
-const history = JSON.parse(localStorage.getItem("hg_history") || "[]");
-history.unshift({
-barcode, ts: new Date().toISOString(),
-name: data.product_name, rating: data.rating,
-kcal: data.calories_per_serving, source: data.data_source
-});
-localStorage.setItem("hg_history", JSON.stringify(history.slice(0, 200)));
+  try {
+    const h = JSON.parse(localStorage.getItem('hg_history') || '[]');
+    h.unshift({
+      barcode, ts: new Date().toISOString(),
+      name:   data.product_name         || barcode,
+      rating: data.rating               || 'Unknown',
+      kcal:   data.calories_per_serving || null,
+      source: data.data_source          || ''
+    });
+    localStorage.setItem('hg_history', JSON.stringify(h.slice(0, 200)));
+  } catch(_) {}
 }
+
+// ─── SHOW RESULT ───────────────────────────────────────────────
 function showResult(d) {
-const rm = { "Healthy":"healthy","Moderately Healthy":"moderate","Unhealthy":"unhealthy" };
-const badge = document.getElementById("badge");
-badge.textContent = d.rating || "?";
-badge.className = "badge " + (rm[d.rating] || "moderate");
-document.getElementById("pname").textContent = d.product_name || "Unknown";
-  document.getElementById("sum").textContent = d.summary || "";
-// Medical condition alerts
-const medEl = document.getElementById("med-alerts");
-if (d.medical_alerts && d.medical_alerts.length) {
-medEl.textContent = "nn " + d.medical_alerts.join(" | ");
-medEl.style.display = "block";
-} else { medEl.style.display = "none"; }
-// Tip
-const tipEl = document.getElementById("tip");
-if (d.tip) { tipEl.textContent = "n " + d.tip; tipEl.style.display = "block"; }
-else { tipEl.style.display = "none"; }
-document.getElementById("src").textContent = d.data_source ? "nn " + d.data_source : "";
-// Calorie bar
-if (d.consumed_today != null && d.goal) {
-const pct = Math.min(100, (d.consumed_today / d.goal) * 100);
-const fill = document.getElementById("cal-fill");
-fill.style.width = pct + "%";
-fill.style.background = pct > 90 ? "#f87171" : pct > 70 ? "#fbbf24" : "#34d399";
-document.getElementById("cal-txt").textContent =
-`${d.consumed_today} / ${d.goal} kcal today`;
+  const rc = { 'Healthy':'healthy', 'Moderately Healthy':'moderate', 'Unhealthy':'unhealthy' };
+  const badge = document.getElementById('badge');
+  badge.textContent = d.rating || 'Unknown';
+  badge.className   = 'badge ' + (rc[d.rating] || 'unknown');
+
+  document.getElementById('pname').textContent = d.product_name || 'Unknown product';
+  document.getElementById('sum').textContent   = d.summary      || '';
+
+  const medEl = document.getElementById('med-alerts');
+  if (d.medical_alerts && d.medical_alerts.length) {
+    medEl.textContent   = '⚕️ ' + d.medical_alerts.join('  ·  ');
+    medEl.style.display = 'block';
+  } else { medEl.style.display = 'none'; }
+
+  const tipEl = document.getElementById('tip-box');
+  if (d.tip) { tipEl.textContent = '💡 ' + d.tip; tipEl.style.display = 'block'; }
+  else { tipEl.style.display = 'none'; }
+
+  document.getElementById('src').textContent = d.data_source ? '🗄️ ' + d.data_source : '';
+
+  if (d.consumed_today != null && d.goal) {
+    const pct  = Math.min(100, Math.round((d.consumed_today / d.goal) * 100));
+    const fill = document.getElementById('cal-fill');
+    fill.style.width      = pct + '%';
+    fill.style.background = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--amber)' : 'var(--green)';
+    document.getElementById('cal-txt').textContent =
+      `${d.consumed_today} / ${d.goal} kcal today  (${pct}%)`;
+  }
+
+  document.getElementById('result').style.display = 'block';
+  setStatus('✅', 'Analysis complete! Tap <strong>Scan Again</strong> for next product.');
 }
-document.getElementById("result").style.display = "block";
-setStatus("n", "Done! Tap Scan Again for next product.");
-}
+
+// ─── UI HELPERS ────────────────────────────────────────────────
 function setStatus(icon, html) {
-document.getElementById("si").innerHTML = icon;
-document.getElementById("st").innerHTML = html;
+  document.getElementById('si').innerHTML = icon;
+  document.getElementById('st').innerHTML = html;
 }
-function clearResult() { document.getElementById("result").style.display="none"; }
-window.addEventListener("load", () => { loadProfile(); startScan(); });
+
+function clearResult() {
+  document.getElementById('result').style.display = 'none';
+  hideDebug();
+}
+
+function restartScan() { scanning = false; clearResult(); startScan(); }
+
+function showDebug(title, lines) {
+  const el = document.getElementById('debug');
+  el.innerHTML = `<span class="dbg-title">🔴 ${title}</span>` +
+    lines.map(l => l === '' ? '<br>' : `${l}<br>`).join('');
+  el.style.display = 'block';
+}
+
+function hideDebug() {
+  const el = document.getElementById('debug');
+  el.style.display = 'none';
+  el.innerHTML = '';
+}
+
+// ─── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => { loadProfile(); startScan(); });
 </script>
 </body>
 </html>
-  
